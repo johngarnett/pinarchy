@@ -137,6 +137,8 @@ test.describe('Real-time updates', () => {
 
       await page1.goto(BASE)
       await page2.goto(BASE)
+      // Wait for page2's SSE connection to be registered on the server before page1 saves
+      await page2.waitForFunction(() => document.body.dataset.sseReady === '1', { timeout: 5000 })
 
       // Page2 is watching; Page1 types a name
       const input1 = page1.locator('#registrations-body tr').nth(2).locator('input').first()

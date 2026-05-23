@@ -6,7 +6,7 @@ let pendingSaves = {}   // key: "timeslot|playerNum" → debounce timer id
 let localEdits = {}     // key: "timeslot|playerNum" → current input value (while typing)
 let inflightSaves = {}  // key: "timeslot|playerNum" → value currently being sent to server
 
-const DEBOUNCE_MS = 800
+const DEBOUNCE_MS = 3000
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 
@@ -32,6 +32,25 @@ async function init() {
       await fetch('/admin/logout', { method: 'POST' })
       window.location.reload()
    })
+
+   // Flush any unsaved edits when the tab/window is closed
+   window.addEventListener('beforeunload', () => {
+      for (const key of Object.keys(pendingSaves)) {
+         clearTimeout(pendingSaves[key])
+         delete pendingSaves[key]
+         if (key in localEdits) {
+            const [timeslot, playerNum] = key.split('|')
+            const name = localEdits[key]
+            delete localEdits[key]
+            fetch(`/api/registrations/${encodeURIComponent(timeslot)}/${playerNum}`, {
+               method: 'PUT',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ name }),
+               keepalive: true
+            })
+         }
+      }
+   })
 }
 
 // ── SSE ───────────────────────────────────────────────────────────────────────
@@ -39,11 +58,16 @@ async function init() {
 function connectSSE() {
    const statusEl = document.getElementById('connection-status')
    const evtSource = new EventSource('/api/events')
+   let firstOpen = true
 
-   evtSource.addEventListener('update', (e) => {
+   evtSource.addEventListener('init', () => {
+      document.body.dataset.sseReady = '1'
+   })
+
+   evtSource.addEventListener('patch', (e) => {
       statusEl.classList.add('hidden')
-      const incoming = JSON.parse(e.data)
-      mergeIncoming(incoming)
+      const { slot, playerNum, name, cookieId } = JSON.parse(e.data)
+      mergePatch(slot, playerNum, name, cookieId)
       renderTable()
       renderPrint()
    })
@@ -54,23 +78,21 @@ function connectSSE() {
 
    evtSource.onopen = () => {
       statusEl.classList.add('hidden')
+      if (firstOpen) { firstOpen = false; return }
+      // Re-fetch full state after a reconnect to catch any patches missed during the gap
+      fetch('/api/registrations').then(r => r.json()).then(regs => {
+         registrations = regs
+         renderTable()
+         renderPrint()
+      })
    }
 }
 
-// Merge server data while preserving any in-flight local edits
-function mergeIncoming(incoming) {
-   registrations = incoming.map(slotData => {
-      const merged = { ...slotData }
-      merged.players = slotData.players.map((player, idx) => {
-         const key = `${slotData.slot}|${idx + 1}`
-         if (key in localEdits) {
-            // User is actively editing — keep their local value for display
-            return { ...player, localName: localEdits[key] }
-         }
-         return player
-      })
-      return merged
-   })
+// Apply a single-field patch from the server, preserving any active local edits
+function mergePatch(slot, playerNum, name, cookieId) {
+   const slotData = registrations.find(s => s.slot === slot)
+   if (!slotData) return
+   slotData.players[playerNum - 1] = { name, cookieId }
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────

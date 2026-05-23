@@ -102,7 +102,7 @@ app.put('/api/registrations/:timeslot/:playerNumber', (req, res) => {
       return res.status(403).json({ error: result.error })
    }
 
-   sse.broadcast('update', db.getAllRegistrations())
+   sse.broadcast('patch', { slot: timeslot, playerNum: num, name: result.name, cookieId: result.cookieId })
    res.json({ ok: true })
 })
 

@@ -15,6 +15,7 @@ function addClient(res) {
    }, 25000)
 
    clients.add(res)
+   res.write('event: init\ndata: {}\n\n')
 
    res.on('close', () => {
       clearInterval(pingInterval)

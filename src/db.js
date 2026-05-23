@@ -99,11 +99,12 @@ function updateRegistration(timeslot, playerNumber, name, cookieId) {
       return { ok: false, error: 'Not authorized to edit this field' }
    }
 
-   const newCookieId = name.trim() === '' ? null : cookieId
+   const trimmed = name.trim()
+   const newCookieId = trimmed === '' ? null : cookieId
    db.prepare('UPDATE registrations SET player_name = ?, cookie_id = ? WHERE timeslot = ? AND player_number = ?')
-      .run(name.trim(), newCookieId, timeslot, playerNumber)
+      .run(trimmed, newCookieId, timeslot, playerNumber)
 
-   return { ok: true }
+   return { ok: true, name: trimmed, cookieId: newCookieId }
 }
 
 function adminUpdateRegistration(timeslot, playerNumber, name) {
@@ -111,10 +112,12 @@ function adminUpdateRegistration(timeslot, playerNumber, name) {
    if (playerNumber !== 1 && playerNumber !== 2) return { ok: false, error: 'Invalid player number' }
 
    const db = getDb()
+   const trimmed = name.trim()
+   const newCookieId = trimmed === '' ? null : '__admin__'
    db.prepare('UPDATE registrations SET player_name = ?, cookie_id = ? WHERE timeslot = ? AND player_number = ?')
-      .run(name.trim(), name.trim() === '' ? null : '__admin__', timeslot, playerNumber)
+      .run(trimmed, newCookieId, timeslot, playerNumber)
 
-   return { ok: true }
+   return { ok: true, name: trimmed, cookieId: newCookieId }
 }
 
 module.exports = { getAllRegistrations, updateRegistration, adminUpdateRegistration, TIMESLOTS, formatDisplayTime }
