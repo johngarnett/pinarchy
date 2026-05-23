@@ -4,6 +4,7 @@ let isAdmin = false
 let registrations = []
 let pendingSaves = {}   // key: "timeslot|playerNum" → debounce timer id
 let localEdits = {}     // key: "timeslot|playerNum" → current input value (while typing)
+let inflightSaves = {}  // key: "timeslot|playerNum" → value currently being sent to server
 
 const DEBOUNCE_MS = 800
 
@@ -76,6 +77,13 @@ function mergeIncoming(incoming) {
 
 function renderTable() {
    const tbody = document.getElementById('registrations-body')
+
+   // Snapshot focus before wiping the DOM so we can restore it afterwards
+   const prevActive = document.activeElement
+   const focusKey = prevActive?.dataset?.key ?? null
+   const selStart  = focusKey ? (prevActive.selectionStart ?? 0) : 0
+   const selEnd    = focusKey ? (prevActive.selectionEnd   ?? 0) : 0
+
    tbody.innerHTML = ''
 
    for (const slotData of registrations) {
@@ -100,8 +108,11 @@ function renderTable() {
          input.className = 'player-input'
          input.placeholder = 'Add name…'
          input.maxLength = 80
+         input.dataset.key = key
 
-         const displayName = key in localEdits ? localEdits[key] : player.name
+         const displayName = key in localEdits ? localEdits[key]
+            : key in inflightSaves ? inflightSaves[key]
+            : player.name
          input.value = displayName
 
          if (isAdmin) {
@@ -138,6 +149,15 @@ function renderTable() {
       }
 
       tbody.appendChild(tr)
+   }
+
+   // Restore focus and cursor position if an input was active before the re-render
+   if (focusKey) {
+      const target = tbody.querySelector(`input[data-key="${CSS.escape(focusKey)}"]`)
+      if (target && !target.readOnly) {
+         target.focus()
+         try { target.setSelectionRange(selStart, selEnd) } catch (_) {}
+      }
    }
 }
 
@@ -187,6 +207,7 @@ function onBlur(key) {
 
 async function save(timeslot, playerNumber, key, name) {
    delete localEdits[key]
+   inflightSaves[key] = name   // keep the value visible while the fetch is in flight
 
    const res = await fetch(`/api/registrations/${encodeURIComponent(timeslot)}/${playerNumber}`, {
       method: 'PUT',
@@ -194,11 +215,10 @@ async function save(timeslot, playerNumber, key, name) {
       body: JSON.stringify({ name })
    })
 
+   delete inflightSaves[key]
+
    if (!res.ok) {
-      // Revert the input to the last known server value on error
-      const serverSlot = registrations.find(s => s.slot === timeslot)
-      const serverName = serverSlot?.players[playerNumber - 1]?.name ?? ''
-      // Re-render will pick up server state
+      // Revert to the last confirmed server value on error
       renderTable()
       console.warn('Save failed:', await res.json())
    }
