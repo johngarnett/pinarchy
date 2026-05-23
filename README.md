@@ -47,3 +47,9 @@ Use NodeJS and Express to implement the web server and app logic.
 Use SQLite to implement persistence of the registered players and associated timeslots.
 
 Choose a lightweight CSS framework to provide mobile first design, responsiveness, and a clean look.
+
+= env =
+
+Generate COOKIE_SECRET
+
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
