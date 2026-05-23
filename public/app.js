@@ -93,8 +93,7 @@ function renderTable() {
 
          const ownerCookieId = player.cookieId
          const ownedByMe = ownerCookieId === visitorId
-         // Only block editing if we know who we are; if visitorId is still null, default to open
-         const ownedByOther = ownerCookieId && visitorId && !ownedByMe && ownerCookieId !== '__admin__'
+         const ownedByOther = ownerCookieId && !ownedByMe && ownerCookieId !== '__admin__'
 
          const input = document.createElement('input')
          input.type = 'text'
