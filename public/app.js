@@ -1,10 +1,10 @@
 /* global state */
-let visitorId = null
 let isAdmin = false
 let registrations = []
-let pendingSaves = {}   // key: "timeslot|playerNum" → debounce timer id
-let localEdits = {}     // key: "timeslot|playerNum" → current input value (while typing)
-let inflightSaves = {}  // key: "timeslot|playerNum" → value currently being sent to server
+let myFields = new Set()  // keys ("slot|playerNum") currently owned by this visitor
+let pendingSaves = {}     // key: "timeslot|playerNum" → debounce timer id
+let localEdits = {}       // key: "timeslot|playerNum" → current input value (while typing)
+let inflightSaves = {}    // key: "timeslot|playerNum" → value currently being sent to server
 
 const DEBOUNCE_MS = 3000
 
@@ -16,7 +16,6 @@ async function init() {
       fetch('/api/registrations').then(r => r.json())
    ])
 
-   visitorId = config.visitorId
    isAdmin = config.isAdmin
 
    if (isAdmin) {
@@ -24,6 +23,13 @@ async function init() {
    }
 
    registrations = regs
+   myFields = new Set(
+      regs.flatMap(slot =>
+         slot.players
+            .map((p, i) => p.mine ? `${slot.slot}|${i + 1}` : null)
+            .filter(Boolean)
+      )
+   )
    renderTable()
    renderPrint()
    connectSSE()
@@ -66,8 +72,8 @@ function connectSSE() {
 
    evtSource.addEventListener('patch', (e) => {
       statusEl.classList.add('hidden')
-      const { slot, playerNum, name, cookieId } = JSON.parse(e.data)
-      mergePatch(slot, playerNum, name, cookieId)
+      const { slot, playerNum, name, hasOwner } = JSON.parse(e.data)
+      mergePatch(slot, playerNum, name, hasOwner)
       renderTable()
       renderPrint()
    })
@@ -82,17 +88,28 @@ function connectSSE() {
       // Re-fetch full state after a reconnect to catch any patches missed during the gap
       fetch('/api/registrations').then(r => r.json()).then(regs => {
          registrations = regs
+         // Rebuild myFields from the personalized REST response
+         myFields = new Set(
+            regs.flatMap(slot =>
+               slot.players
+                  .map((p, i) => p.mine ? `${slot.slot}|${i + 1}` : null)
+                  .filter(Boolean)
+            )
+         )
          renderTable()
          renderPrint()
       })
    }
 }
 
-// Apply a single-field patch from the server, preserving any active local edits
-function mergePatch(slot, playerNum, name, cookieId) {
+// Apply a single-field patch from the server
+function mergePatch(slot, playerNum, name, hasOwner) {
    const slotData = registrations.find(s => s.slot === slot)
    if (!slotData) return
-   slotData.players[playerNum - 1] = { name, cookieId }
+   slotData.players[playerNum - 1] = { name, hasOwner }
+   // myFields is only updated by save() and the initial REST fetch — never from SSE patches.
+   // The server prevents other users from overwriting owned fields, so a patch for a field
+   // in myFields must either be our own echo or an admin clear; both are handled elsewhere.
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -117,13 +134,12 @@ function renderTable() {
       tr.appendChild(timeTd)
 
       for (let i = 0; i < 2; i++) {
-         const player = slotData.players[i] || { name: '', cookieId: null }
+         const player = slotData.players[i] || { name: '', hasOwner: false }
          const key = `${slotData.slot}|${i + 1}`
          const td = document.createElement('td')
 
-         const ownerCookieId = player.cookieId
-         const ownedByMe = ownerCookieId === visitorId
-         const ownedByOther = ownerCookieId && !ownedByMe && ownerCookieId !== '__admin__'
+         const ownedByMe = myFields.has(key)
+         const ownedByOther = player.hasOwner && !ownedByMe
 
          const input = document.createElement('input')
          input.type = 'text'
@@ -231,6 +247,15 @@ async function save(timeslot, playerNumber, key, name) {
    delete localEdits[key]
    inflightSaves[key] = name   // keep the value visible while the fetch is in flight
 
+   // Optimistically update ownership NOW so that when the SSE echo arrives (before
+   // the fetch resolves) the field renders with the correct editable/readonly state.
+   const wasMine = myFields.has(key)
+   if (name.trim()) {
+      myFields.add(key)
+   } else {
+      myFields.delete(key)
+   }
+
    const res = await fetch(`/api/registrations/${encodeURIComponent(timeslot)}/${playerNumber}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -240,11 +265,12 @@ async function save(timeslot, playerNumber, key, name) {
    delete inflightSaves[key]
 
    if (!res.ok) {
-      // Revert to the last confirmed server value on error
+      // Revert both the optimistic ownership update and the displayed value
+      if (wasMine) { myFields.add(key) } else { myFields.delete(key) }
       renderTable()
       console.warn('Save failed:', await res.json())
    }
-   // On success, the SSE broadcast will update the table
+   // On success, the SSE echo triggers the re-render
 }
 
 init()

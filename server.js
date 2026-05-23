@@ -77,7 +77,15 @@ app.get('/api/events', (req, res) => {
 // ── Registrations API ─────────────────────────────────────────────────────────
 
 app.get('/api/registrations', (req, res) => {
-   res.json(db.getAllRegistrations())
+   const myId = req.cookies.visitor_id
+   res.json(db.getAllRegistrations().map(slot => ({
+      ...slot,
+      players: slot.players.map(p => ({
+         name: p.name,
+         mine: p.cookieId !== null && p.cookieId !== '__admin__' && p.cookieId === myId,
+         hasOwner: p.cookieId !== null
+      }))
+   })))
 })
 
 app.put('/api/registrations/:timeslot/:playerNumber', (req, res) => {
@@ -102,7 +110,7 @@ app.put('/api/registrations/:timeslot/:playerNumber', (req, res) => {
       return res.status(403).json({ error: result.error })
    }
 
-   sse.broadcast('patch', { slot: timeslot, playerNum: num, name: result.name, cookieId: result.cookieId })
+   sse.broadcast('patch', { slot: timeslot, playerNum: num, name: result.name, hasOwner: result.cookieId !== null })
    res.json({ ok: true })
 })
 
@@ -110,7 +118,6 @@ app.put('/api/registrations/:timeslot/:playerNumber', (req, res) => {
 
 app.get('/api/config', (req, res) => {
    res.json({
-      visitorId: req.cookies.visitor_id,
       isAdmin: isAdminRequest(req),
       adminEnabled: !!ADMIN_PASSWORD
    })
