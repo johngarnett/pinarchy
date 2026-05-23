@@ -1,0 +1,253 @@
+/* ── Layout ── */
+body {
+   padding-bottom: 2rem;
+}
+
+main.container {
+   max-width: 700px;
+}
+
+header {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   flex-wrap: wrap;
+   gap: 0.5rem;
+   margin-bottom: 1rem;
+}
+
+header h1 {
+   margin: 0;
+   font-size: clamp(1.4rem, 5vw, 2rem);
+}
+
+/* ── Admin bar ── */
+.admin-bar {
+   display: flex;
+   align-items: center;
+   gap: 0.75rem;
+}
+
+.admin-badge {
+   background: var(--pico-color-amber-500, #f59e0b);
+   color: #fff;
+   font-size: 0.75rem;
+   font-weight: 700;
+   padding: 0.2em 0.6em;
+   border-radius: 999px;
+   letter-spacing: 0.04em;
+   text-transform: uppercase;
+}
+
+.btn-sm {
+   padding: 0.25rem 0.75rem;
+   font-size: 0.8rem;
+}
+
+/* ── Connection status ── */
+.connection-status {
+   background: #fff3cd;
+   border: 1px solid #ffc107;
+   border-radius: 4px;
+   padding: 0.4rem 0.75rem;
+   margin-bottom: 0.75rem;
+   font-size: 0.85rem;
+}
+
+/* ── Instructions ── */
+.instructions {
+   font-size: 0.88rem;
+   color: var(--pico-muted-color);
+   margin-bottom: 1rem;
+   line-height: 1.5;
+}
+
+.instructions p {
+   margin: 0 0 0.4rem;
+}
+
+.instructions p:last-child {
+   margin-bottom: 0;
+}
+
+/* ── Table ── */
+.table-wrapper {
+   overflow-x: auto;
+   -webkit-overflow-scrolling: touch;
+}
+
+#registrations-table {
+   width: 100%;
+   border-collapse: collapse;
+   table-layout: fixed;
+}
+
+.col-time {
+   width: 90px;
+}
+
+.col-player {
+   width: auto;
+}
+
+#registrations-table td,
+#registrations-table th {
+   padding: 0.15rem 0.5rem;
+   vertical-align: middle;
+}
+
+#registrations-table tbody tr:nth-child(odd) td {
+   background: #ebebeb;
+}
+
+.time-cell {
+   font-variant-numeric: tabular-nums;
+   white-space: nowrap;
+   font-size: 0.9rem;
+   color: var(--pico-muted-color);
+}
+
+/* ── Player cell wrapper ── */
+.player-cell {
+   display: flex;
+   align-items: center;
+   gap: 0.25rem;
+}
+
+/* ── Player input fields ── */
+.player-input {
+   flex: 1;
+   min-width: 0;
+   margin: 0 !important;
+   padding: 0.15rem 0.4rem !important;
+   border: 1px solid transparent;
+   border-radius: 4px;
+   background: transparent;
+   font-size: 0.95rem;
+   transition: border-color 0.15s, background 0.15s;
+   box-sizing: border-box;
+}
+
+.player-input:not([disabled]):not([readonly]):hover,
+.player-input:not([disabled]):not([readonly]):focus {
+   border-color: var(--pico-primary-border, #0070f3);
+   background: #fff;
+   outline: none;
+}
+
+/* ── Clear button ── */
+.clear-btn {
+   flex-shrink: 0;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 1.25rem;
+   height: 1.25rem;
+   padding: 0;
+   border: none;
+   background: transparent;
+   color: #999;
+   cursor: pointer;
+   border-radius: 50%;
+   font-size: 0.85rem;
+   line-height: 1;
+   transition: background 0.12s, color 0.12s;
+}
+
+.clear-btn:hover {
+   background: #ddd;
+   color: #555;
+}
+
+
+.player-input[readonly] {
+   cursor: default;
+   color: var(--pico-color);
+}
+
+.player-input[disabled] {
+   opacity: 0.5;
+   cursor: not-allowed;
+}
+
+.player-input.owned {
+   font-weight: 600;
+}
+
+.loading {
+   text-align: center;
+   color: var(--pico-muted-color);
+   padding: 2rem;
+}
+
+/* ── Actions ── */
+.actions {
+   margin-top: 1.5rem;
+   display: flex;
+   gap: 1rem;
+}
+
+/* ── Admin login card ── */
+.admin-login-card {
+   max-width: 380px;
+   margin: 3rem auto;
+}
+
+.error {
+   color: var(--pico-color-red-500, #ef4444);
+   font-size: 0.9rem;
+   margin-top: 0.25rem;
+}
+
+/* ── Utilities ── */
+.hidden {
+   display: none !important;
+}
+
+/* ── Print styles ── */
+@media screen {
+   .print-only {
+      display: none;
+   }
+}
+
+@media print {
+   body > main,
+   nav,
+   .actions,
+   #connection-status,
+   .no-print {
+      display: none !important;
+   }
+
+   .print-only {
+      display: block;
+   }
+
+   #print-view h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+   }
+
+   #print-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+   }
+
+   #print-table th,
+   #print-table td {
+      border: 1px solid #ccc;
+      padding: 0.4rem 0.6rem;
+      text-align: left;
+   }
+
+   #print-table th {
+      background: #f0f0f0;
+      font-weight: bold;
+   }
+
+   #print-table tbody tr:nth-child(odd) {
+      background: #fafafa;
+   }
+}

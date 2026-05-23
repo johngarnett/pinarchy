@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Admin – Pinarchy in Parkwood</title>
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+   <link rel="stylesheet" href="style.css">
+</head>
+<body>
+   <main class="container">
+      <h1>Pinarchy in Parkwood</h1>
+      <article class="admin-login-card">
+         <h2>Admin Login</h2>
+         <form id="login-form">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" autocomplete="current-password" required>
+            <p id="error-msg" class="error hidden">Incorrect password.</p>
+            <button type="submit">Log in</button>
+         </form>
+      </article>
+   </main>
+   <script>
+      document.getElementById('login-form').addEventListener('submit', async (e) => {
+         e.preventDefault()
+         const password = document.getElementById('password').value
+         const res = await fetch('/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+         })
+         if (res.ok) {
+            window.location.href = '/'
+         } else {
+            document.getElementById('error-msg').classList.remove('hidden')
+         }
+      })
+   </script>
+</body>
+</html>

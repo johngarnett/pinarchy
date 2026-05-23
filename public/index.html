@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Pinarchy in Parkwood</title>
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+   <link rel="stylesheet" href="style.css">
+</head>
+<body>
+   <main class="container">
+      <header>
+         <h1>Pinarchy in Parkwood</h1>
+         <div id="admin-bar" class="admin-bar hidden">
+            <span class="admin-badge">Admin Mode</span>
+            <button class="outline secondary btn-sm" id="logout-btn">Log out</button>
+         </div>
+      </header>
+
+      <div class="instructions no-print">
+         <p>Once you have entered a name, only you and the administrator will be able to change it. To edit or clear a name, you must connect using the same device and browser as you used when first adding the name.</p>
+         <p>Do not add any player other than yourself unless asked to do so by that player. If you do add another player, be sure to share the time, instructions, and website address with them.</p>
+         <p>Please arrive at least fifteen (15) minutes prior to your chosen timeslot.</p>
+      </div>
+
+      <div id="connection-status" class="connection-status hidden">
+         <small>Reconnecting&hellip;</small>
+      </div>
+
+      <div class="table-wrapper">
+         <table id="registrations-table">
+            <thead>
+               <tr>
+                  <th class="col-time">Time</th>
+                  <th class="col-player">Player 1</th>
+                  <th class="col-player">Player 2</th>
+               </tr>
+            </thead>
+            <tbody id="registrations-body">
+               <tr><td colspan="3" class="loading">Loading&hellip;</td></tr>
+            </tbody>
+         </table>
+      </div>
+
+      <div class="actions">
+         <button id="print-btn" onclick="window.print()">Print</button>
+      </div>
+   </main>
+
+   <div id="print-view" class="print-only">
+      <h1>Pinarchy in Parkwood</h1>
+      <table id="print-table">
+         <thead>
+            <tr>
+               <th>Time</th>
+               <th>Player 1</th>
+               <th>Player 2</th>
+            </tr>
+         </thead>
+         <tbody id="print-body"></tbody>
+      </table>
+   </div>
+
+   <script src="app.js"></script>
+</body>
+</html>
