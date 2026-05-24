@@ -170,7 +170,7 @@ function renderTable() {
          cell.className = 'player-cell'
          cell.appendChild(input)
 
-         if (ownedByMe || (isAdmin && player.name)) {
+         if (player.name && (ownedByMe || isAdmin)) {
             const clearBtn = document.createElement('button')
             clearBtn.className = 'clear-btn'
             clearBtn.title = 'Clear'
@@ -209,6 +209,20 @@ function renderPrint() {
       tr.innerHTML = `<td>${slotData.display}</td><td>${escHtml(p1)}</td><td>${escHtml(p2)}</td>`
       tbody.appendChild(tr)
    }
+}
+
+let toastTimer = null
+
+function showToast(message) {
+   const el = document.getElementById('toast')
+   el.textContent = message
+   el.classList.remove('hidden', 'fade-out')
+
+   clearTimeout(toastTimer)
+   toastTimer = setTimeout(() => {
+      el.classList.add('fade-out')
+      toastTimer = setTimeout(() => el.classList.add('hidden'), 400)
+   }, 4000)
 }
 
 function escHtml(str) {
@@ -268,9 +282,16 @@ async function save(timeslot, playerNumber, key, name) {
       // Revert both the optimistic ownership update and the displayed value
       if (wasMine) { myFields.add(key) } else { myFields.delete(key) }
       renderTable()
-      console.warn('Save failed:', await res.json())
+      showToast('Someone else reserved this slot just a few seconds ago. Please choose another available slot.')
    }
    // On success, the SSE echo triggers the re-render
 }
+
+// If Chrome restores this page from BFCache (back/forward navigation), the JS heap
+// — including myFields, registrations, and all SSE state — is stale. Force a reload
+// so init() runs fresh. event.persisted = true only on BFCache restores, not normal loads.
+window.addEventListener('pageshow', (event) => {
+   if (event.persisted) window.location.reload()
+})
 
 init()
