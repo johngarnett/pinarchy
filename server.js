@@ -31,7 +31,16 @@ app.use((req, res, next) => {
    next()
 })
 
-app.use(express.static(path.join(__dirname, 'public')))
+app.use(express.static(path.join(__dirname, 'public'), {
+   etag: true,
+   lastModified: true,
+   setHeaders(res, filePath) {
+      if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+         // Revalidate on every request; serve from cache only if ETag matches
+         res.setHeader('Cache-Control', 'no-cache')
+      }
+   }
+}))
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
