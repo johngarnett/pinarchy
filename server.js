@@ -2,6 +2,7 @@ require('dotenv').config()
 const express = require('express')
 const cookieParser = require('cookie-parser')
 const crypto = require('crypto')
+const fs = require('fs')
 const { v4: uuidv4 } = require('uuid')
 const path = require('path')
 
@@ -18,6 +19,17 @@ const COOKIE_MAX_AGE = 365 * 24 * 60 * 60 * 1000  // 1 year
 // which means admin sessions are invalidated on server restart (acceptable).
 const COOKIE_SECRET = process.env.COOKIE_SECRET || crypto.randomBytes(32).toString('hex')
 
+// Compute content hashes at startup so index.html can reference versioned URLs.
+// Whenever a file changes the hash changes, forcing browsers to fetch the new version.
+function fileHash(filePath) {
+   return crypto.createHash('md5').update(fs.readFileSync(filePath)).digest('hex').slice(0, 8)
+}
+const PUBLIC_DIR = path.join(__dirname, 'public')
+const ASSET_HASHES = {
+   'app.js':    fileHash(path.join(PUBLIC_DIR, 'app.js')),
+   'style.css': fileHash(path.join(PUBLIC_DIR, 'style.css')),
+}
+
 app.use(express.json())
 app.use(cookieParser(COOKIE_SECRET))
 
@@ -31,13 +43,22 @@ app.use((req, res, next) => {
    next()
 })
 
-app.use(express.static(path.join(__dirname, 'public'), {
-   etag: true,
-   lastModified: true,
+// Serve index.html with versioned asset URLs so browsers always load current JS/CSS
+app.get('/', (req, res) => {
+   let html = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8')
+   for (const [file, hash] of Object.entries(ASSET_HASHES)) {
+      html = html.replaceAll(`"${file}"`, `"${file}?v=${hash}"`)
+   }
+   res.setHeader('Cache-Control', 'no-cache')
+   res.setHeader('Content-Type', 'text/html')
+   res.send(html)
+})
+
+// Static assets — JS/CSS are immutable for a given ?v= hash, so cache aggressively
+app.use(express.static(PUBLIC_DIR, {
    setHeaders(res, filePath) {
       if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
-         // Revalidate on every request; serve from cache only if ETag matches
-         res.setHeader('Cache-Control', 'no-cache')
+         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
       }
    }
 }))
