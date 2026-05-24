@@ -104,7 +104,7 @@ function updateRegistration(timeslot, playerNumber, name, cookieId) {
    db.prepare('UPDATE registrations SET player_name = ?, cookie_id = ? WHERE timeslot = ? AND player_number = ?')
       .run(trimmed, newCookieId, timeslot, playerNumber)
 
-   return { ok: true, name: trimmed, cookieId: newCookieId }
+   return { ok: true, name: trimmed, cookieId: newCookieId, oldName: existing.player_name }
 }
 
 function adminUpdateRegistration(timeslot, playerNumber, name) {
@@ -112,12 +112,13 @@ function adminUpdateRegistration(timeslot, playerNumber, name) {
    if (playerNumber !== 1 && playerNumber !== 2) return { ok: false, error: 'Invalid player number' }
 
    const db = getDb()
+   const existing = db.prepare('SELECT player_name FROM registrations WHERE timeslot = ? AND player_number = ?').get(timeslot, playerNumber)
    const trimmed = name.trim()
    const newCookieId = trimmed === '' ? null : '__admin__'
    db.prepare('UPDATE registrations SET player_name = ?, cookie_id = ? WHERE timeslot = ? AND player_number = ?')
       .run(trimmed, newCookieId, timeslot, playerNumber)
 
-   return { ok: true, name: trimmed, cookieId: newCookieId }
+   return { ok: true, name: trimmed, cookieId: newCookieId, oldName: existing?.player_name ?? '' }
 }
 
 module.exports = { getAllRegistrations, updateRegistration, adminUpdateRegistration, TIMESLOTS, formatDisplayTime }

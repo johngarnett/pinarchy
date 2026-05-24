@@ -69,6 +69,19 @@ function isAdminRequest(req) {
    return !!(ADMIN_PASSWORD && req.signedCookies.admin_session === 'true')
 }
 
+function logChange({ timeslot, playerNumber, oldName, newName, cookieId, admin }) {
+   const ts = new Date().toISOString()
+   const slot = `${timeslot}|${playerNumber}`
+   const who = admin ? 'admin' : `cookie=…${cookieId.slice(-8)}`
+
+   let action
+   if (!oldName && newName)       action = `ADDED    "${newName}"`
+   else if (oldName && !newName)  action = `REMOVED  "${oldName}"`
+   else                           action = `CHANGED  "${oldName}" → "${newName}"`
+
+   console.log(`[${ts}] ${slot}  ${action}  (${who})`)
+}
+
 // ── Admin routes ──────────────────────────────────────────────────────────────
 
 app.get('/admin', (req, res) => {
@@ -139,6 +152,15 @@ app.put('/api/registrations/:timeslot/:playerNumber', (req, res) => {
    if (!result.ok) {
       return res.status(403).json({ error: result.error })
    }
+
+   logChange({
+      timeslot,
+      playerNumber: num,
+      oldName: result.oldName,
+      newName: result.name,
+      cookieId: req.cookies.visitor_id,
+      admin: isAdminRequest(req)
+   })
 
    sse.broadcast('patch', { slot: timeslot, playerNum: num, name: result.name, hasOwner: result.cookieId !== null })
    res.json({ ok: true })
