@@ -62,6 +62,16 @@ header h1 {
    line-height: 1.5;
 }
 
+/* Portrait 3:4 logo floated at the top of <main> so its top lines up with
+   the title and both the title and the paragraphs wrap along its left side.
+   Scales with the viewport (~192px tall on mobile). */
+.site-logo {
+   float: right;
+   height: clamp(192px, 48vw, 288px);
+   width: auto;
+   margin: 0 0 0.5rem 1rem;
+}
+
 .instructions p {
    margin: 0 0 0.4rem;
 }
@@ -72,6 +82,7 @@ header h1 {
 
 /* ── Table ── */
 .table-wrapper {
+   clear: both;   /* always start below the floated logo */
    overflow-x: auto;
    -webkit-overflow-scrolling: touch;
 }
