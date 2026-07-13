@@ -3,14 +3,40 @@ const path = require('path')
 
 const DB_PATH = path.join(__dirname, '..', 'data', 'pinarchy.db')
 
-const SLOT_START_MINUTES = 11 * 60 + 30  // 11:30am in minutes
-const SLOT_END_MINUTES = 15 * 60         // 3:00pm in minutes
-const SLOT_DURATION_MINUTES = 10
+// Schedule config. Defaults match the standard tournament; each can be
+// overridden with an environment variable (change + restart, no code edit).
+// SLOT_START accepts "HH:MM" (24h), e.g. SLOT_START=10:30 to open earlier.
+const DEFAULT_SLOT_START_MINUTES = 11 * 60       // 11:00am in minutes
+const DEFAULT_SLOT_DURATION_MINUTES = 10
+const DEFAULT_NUM_TIMESLOTS = 18
+const MAX_TIMESLOTS = 21          // guard against a typo seeding a runaway number of slots
 const PLAYERS_PER_SLOT = 2
+
+function parseStartMinutes(value) {
+   if (!value) return DEFAULT_SLOT_START_MINUTES
+   const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim())
+   if (!match) throw new Error(`Invalid SLOT_START "${value}" — expected HH:MM (24-hour)`)
+   const [h, m] = [Number(match[1]), Number(match[2])]
+   if (h > 23 || m > 59) throw new Error(`Invalid SLOT_START "${value}" — hour must be 0-23, minute 0-59`)
+   return h * 60 + m
+}
+
+function parsePositiveInt(value, fallback, label, max) {
+   if (value === undefined || value === '') return fallback
+   const n = Number(value)
+   if (!Number.isInteger(n) || n < 1) throw new Error(`Invalid ${label} "${value}" — expected a positive integer`)
+   if (max !== undefined && n > max) throw new Error(`Invalid ${label} "${value}" — must be ${max} or fewer`)
+   return n
+}
+
+const SLOT_START_MINUTES = parseStartMinutes(process.env.SLOT_START)
+const SLOT_DURATION_MINUTES = parsePositiveInt(process.env.SLOT_DURATION_MINUTES, DEFAULT_SLOT_DURATION_MINUTES, 'SLOT_DURATION_MINUTES')
+const NUM_TIMESLOTS = parsePositiveInt(process.env.NUM_TIMESLOTS, DEFAULT_NUM_TIMESLOTS, 'NUM_TIMESLOTS', MAX_TIMESLOTS)
 
 function generateTimeslots() {
    const slots = []
-   for (let m = SLOT_START_MINUTES; m <= SLOT_END_MINUTES; m += SLOT_DURATION_MINUTES) {
+   const endMinutes = SLOT_START_MINUTES + (NUM_TIMESLOTS - 1) * SLOT_DURATION_MINUTES
+   for (let m = SLOT_START_MINUTES; m <= endMinutes; m += SLOT_DURATION_MINUTES) {
       const hours = Math.floor(m / 60)
       const minutes = m % 60
       const label = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
