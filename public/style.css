@@ -7,6 +7,14 @@ main.container {
    max-width: 700px;
 }
 
+/* ── Logo credit ── */
+.logo-credit {
+   margin: 0 0 0 auto;   /* push to the right edge of the actions row */
+   align-self: center;
+   font-size: 0.8rem;
+   color: var(--pico-muted-color);
+}
+
 header {
    display: flex;
    align-items: center;
